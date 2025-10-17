@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Chess Game</title>
+    <style>
+        body {
+            font-family: sans-serif;
+        }
+        .board {
+            display: grid;
+            grid-template-columns: repeat(8, 50px);
+            grid-template-rows: repeat(8, 50px);
+            border: 2px solid black;
+        }
+        .square {
+            width: 50px;
+            height: 50px;
+            text-align: center;
+            font-size: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+        .white {
+            background-color: #f0d9b5;
+        }
+        .black {
+            background-color: #b58863;
+        }
+        .selected {
+            background-color: yellow;
+        }
+        .possible-move {
+            background-color: lightgreen;
+        }
+    </style>
+</head>
+<body>
+    <h1>Chess Game</h1>
+    <div id="captcha-container">
+        <p>Captcha URL: <span id="captcha-url"></span></p>
+        <p>Solved Captcha: <span id="solved-captcha"></span></p>
+    </div>
+    <div class="board" id="chess-board"></div>
+
+    <script>
+        const board = document.getElementById('chess-board');
+        const captchaUrlSpan = document.getElementById('captcha-url');
+        const solvedCaptchaSpan = document.getElementById('solved-captcha');
+
+        // Chessboard representation (empty for now)
+        let chessBoard = [
+            ['r', 'n', 'b', 'q', 'k', 'b', 'n', 'r'],
+            ['p', 'p', 'p', 'p', 'p', 'p', 'p', 'p'],
+            ['', '', '', '', '', '', '', ''],
+            ['', '', '', '', '', '', '', ''],
+            ['', '', '', '', '', '', '', ''],
+            ['', '', '', '', '', '', '', ''],
+            ['P', 'P', 'P', 'P', 'P', 'P', 'P', 'P'],
+            ['R', 'N', 'B', 'Q', 'K', 'B', 'N', 'R']
+        ];
+
+
+        let selectedPiece = null;
+        let possibleMoves = [];
+
+        function initializeBoard() {
+            for (let row = 0; row < 8; row++) {
+                for (let col = 0; col < 8; col++) {
+                    const square = document.createElement('div');
+                    square.classList.add('square');
+                    square.classList.add((row + col) % 2 === 0 ? 'white' : 'black');
+                    square.dataset.row = row;
+                    square.dataset.col = col;
+
+                    square.textContent = chessBoard[row][col]; // Display piece
+
+                    square.addEventListener('click', handleSquareClick);
+                    board.appendChild(square);
+                }
+            }
+        }
+
+        function handleSquareClick(event) {
+            const row = parseInt(event.target.dataset.row);
+            const col = parseInt(event.target.dataset.col);
+            const piece = chessBoard[row][col];
+
+            if (selectedPiece) {
+                // Move the piece if the clicked square is a possible move
+                const move = possibleMoves.find(m => m.row === row && m.col === col);
+                if (move) {
+                    movePiece(selectedPiece.row, selectedPiece.col, row, col);
+                } else {
+                    clearSelection();
+                    if(piece !== ''){
+                         selectPiece(row, col);
+                    }
+                }
+
+            } else if (piece !== '') {
+                selectPiece(row, col);
+            }
+        }
+
+        function selectPiece(row, col) {
+            clearSelection();
+            selectedPiece = { row: row, col: col };
+            document.querySelector(`.square[data-row="${row}"][data-col="${col}"]`).classList.add('selected');
+            possibleMoves = getPossibleMoves(row, col);
+            highlightPossibleMoves();
+        }
+
+        function clearSelection() {
+            document.querySelectorAll('.square').forEach(square => {
+                square.classList.remove('selected', 'possible-move');
+            });
+            selectedPiece = null;
+            possibleMoves = [];
+        }
+
+        function highlightPossibleMoves() {
+            possibleMoves.forEach(move => {
+                document.querySelector(`.square[data-row="${move.row}"][data-col="${move.col}"]`).classList.add('possible-move');
+            });
+        }
+
+        function movePiece(startRow, startCol, endRow, endCol) {
+            chessBoard[endRow][endCol] = chessBoard[startRow][startCol];
+            chessBoard[startRow][startCol] = '';
+            updateBoard();
+            clearSelection();
+        }
+
+        function updateBoard() {
+            const squares = document.querySelectorAll('.square');
+            squares.forEach(square => {
+                const row = parseInt(square.dataset.row);
+                const col = parseInt(square.dataset.col);
+                square.textContent = chessBoard[row][col];
+            });
+        }
+
+       function getPossibleMoves(row, col) {
+            const piece = chessBoard[row][col];
+            const possibleMoves = [];
+
+            switch (piece) {
+                case 'p': // Black pawn
+                case 'P'://White pawn
+                 //Simple pawn movement for testing
+                    if (piece === 'P' && row > 0 && chessBoard[row-1][col] === '') {
+                        possibleMoves.push({ row: row - 1, col: col });
+                    }
+                    if (piece === 'p' && row < 7 && chessBoard[row+1][col] === '') {
+                        possibleMoves.push({ row: row + 1, col: col });
+                    }
+                break;
+                case 'r':  //Black Rook
+                case 'R': //White Rook
+                     // Implement rook movement logic
+                      for (let i = row - 1; i >= 0; i--) {
+                            if (chessBoard[i][col] === '') {
+                                possibleMoves.push({ row: i, col: col });
+                            } else {
+                                break; // Blocked by another piece
+                            }
+                        }
+
+                        for (let i = row + 1; i < 8; i++) {
+                            if (chessBoard[i][col] === '') {
+                                possibleMoves.push({ row: i, col: col });
+                            } else {
+                                break; // Blocked by another piece
+                            }
+                        }
+
+                        for (let j = col - 1; j >= 0; j--) {
+                            if (chessBoard[row][j] === '') {
+                                possibleMoves.push({ row: row, col: j });
+                            } else {
+                                break; // Blocked by another piece
+                            }
+                        }
+
+                        for (let j = col + 1; j < 8; j++) {
+                            if (chessBoard[row][j] === '') {
+                                possibleMoves.push({ row: row, col: j });
+                            } else {
+                                break; // Blocked by another piece
+                            }
+                        }
+
+                    break;
+               default:
+                    // Add more piece logic
+                    break;
+            }
+
+            return possibleMoves;
+        }
+
+
+        // Initialize the board on load
+        initializeBoard();
+
+        // Captcha handling (example)
+        const urlParams = new URLSearchParams(window.location.search);
+        const captchaUrl = urlParams.get('url');
+
+        if (captchaUrl) {
+            captchaUrlSpan.textContent = captchaUrl;
+            // Simulate solving the captcha after 5 seconds
+            setTimeout(() => {
+                solvedCaptchaSpan.textContent = "Solved!";
+            }, 5000);
+        } else {
+            captchaUrlSpan.textContent = "No captcha URL provided.";
+        }
+    </script>
+</body>
+</html>
